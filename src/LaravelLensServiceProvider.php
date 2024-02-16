@@ -13,6 +13,11 @@ class LaravelLensServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+
+        if(!config('laravel-lens.enabled')) {
+            return;
+        }
+
         /*
          * Optional methods to load your package assets
          */

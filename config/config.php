@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'enabled' => env('LARAVEL_LENS_ENABLED', false),
     'default' => env('LARAVEL_LENS_DRIVER', 'simple'),
     'route-prefix' => env('LARAVEL_LENS_ROUTE_PREFIX', 'laravel-lens'),
     'username' => env('LARAVEL_LENS_USERNAME', 'laravel-lens'),
