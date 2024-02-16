@@ -14,6 +14,12 @@ You can install the package via composer:
 composer require odat/laravel-lens
 ```
 
+Then 
+
+```bash
+php artisan vendor:publish --provider="Odat\\LaravelLens\\LaravelLensServiceProvider" --force --tag="assets" 
+php artisan vendor:publish --provider="Odat\\LaravelLens\\LaravelLensServiceProvider" --force --tag="config" 
+```
 
 ### Testing
 
