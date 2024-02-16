@@ -34,7 +34,7 @@ class LaravelLensServiceProvider extends ServiceProvider
             // Publishing the views.
             $this->publishes([
                 __DIR__.'/../resources/views' => resource_path('views/vendor/laravel-lens'),
-            ], 'views')->tag;
+            ], 'views');
 
             // Publishing assets.
             $this->publishes([
