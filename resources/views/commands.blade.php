@@ -64,7 +64,7 @@ document.querySelectorAll('.run-command').forEach(button => {
             Running...
         `;
 
-        fetch("{{ route('laravel-lens.run-command') }}", {
+        fetch("{{ secure_url(route('laravel-lens.run-command', [], false)) }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
