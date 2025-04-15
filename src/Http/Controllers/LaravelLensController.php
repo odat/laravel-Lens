@@ -224,6 +224,8 @@ class LaravelLensController extends Controller
 
     public function runCommand(Request $request)
     {
+        set_time_limit(300);
+
         $request->validate([
             'command' => 'required|string',
         ]);
