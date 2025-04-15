@@ -7,14 +7,14 @@
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-table me-1"></i>
-            Artisan Commands
+            Background Tasks
         </div>
         <div class="card-body">
             <div id="output" class="mt-4 alert alert-info d-none"></div>
             <table id="" class="table table-bordered">
                 <thead>
                 <tr>
-                    <th>Command</th>
+                    <th>Task</th>
                     <th>Description</th>
                     <th>Frequency</th>
                     <th>Last run</th>
