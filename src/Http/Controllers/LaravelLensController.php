@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Odat\LaravelLens\Jobs\RunArtisanCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\BufferedOutput;
 
@@ -231,8 +232,8 @@ class LaravelLensController extends Controller
         ]);
 
         try {
-            $output = Artisan::call($request->command, []);
-            return response()->json(['output' => $output]);
+            RunArtisanCommand::dispatch($request->command);
+            return response()->json(['output' => 'Command has been queued successfully.']);
         } catch (\Exception $e) {
             return response()->json(['output' => "Error: " . $e->getMessage()], 500);
         }
