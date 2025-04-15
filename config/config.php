@@ -11,5 +11,10 @@ return [
         'simple' => [
             'driver' => 'simple'
         ]
-    ]
+        ],
+        'background_logs_table' => [
+            'table' => 'background_task_infos',
+            'last_run_column' => 'last_run',
+            'task_name_column' => 'task_name'
+        ]
 ];

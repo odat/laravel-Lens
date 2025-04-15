@@ -17,6 +17,9 @@ Route::controller(LaravelLensController::class)->middleware(['web', LaravelLensA
     Route::get('software-and-data-integrity-failures', 'softwareAndDataIntegrityFailures')->name('software-and-data-integrity-failures');
     Route::get('security-logging-and-monitoring-failures', 'securityLoggingAndMonitoringFailures')->name('security-logging-and-monitoring-failures');
     Route::get('server-side-request-forgery', 'serverSideRequestForgery')->name('server-side-request-forgery');
+    Route::get('commands-list', 'commandsList')->name('commands-list');
+    Route::post('run-command', 'runCommand')->name('run-command');
+
 });
 
 Route::controller(LaravelLensAuthController::class)->middleware(['web'])
