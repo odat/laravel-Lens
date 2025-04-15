@@ -11288,6 +11288,7 @@
                     <a class="nav-link" href="{{route('laravel-lens.software-and-data-integrity-failures')}}">Software and Data Integrity Failures</a>
                     <a class="nav-link" href="{{route('laravel-lens.security-logging-and-monitoring-failures')}}">Security Logging and Monitoring Failures</a>
                     <a class="nav-link" href="{{route('laravel-lens.server-side-request-forgery')}}">Server-Side Request Forgery</a>
+                    <a class="nav-link" href="{{route('laravel-lens.commands-list')}}">Background Tasks</a>
 
                 </div>
             </div>
@@ -11330,6 +11331,6 @@
 
     });
 </script>
-
+@stack('scripts')
 </body>
 </html>

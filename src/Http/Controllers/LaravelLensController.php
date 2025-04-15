@@ -1,12 +1,20 @@
 <?php
 
 namespace Odat\LaravelLens\Http\Controllers;
+
+use Illuminate\Console\Command as ConsoleCommand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 class LaravelLensController extends Controller
 {
@@ -127,6 +135,104 @@ class LaravelLensController extends Controller
             }else{
                 self::$files[] = $dir.'/'.$ff;
             }
+        }
+    }
+
+    public function commandsList(Request $request)
+    {
+        $lastRun = false;
+        $background_logs_table = config('laravel-lens.background_logs_table.table');
+        $taskNameColumn = config('laravel-lens.background_logs_table.task_name_column');
+        if(Schema::hasTable($background_logs_table)) {
+            $lastRunColumn = config('laravel-lens.background_logs_table.last_run_column');
+            if(Schema::hasColumn($background_logs_table, $lastRunColumn)) {
+                $lastRun = true;
+            }
+
+        }
+
+        $registeredCommands = Artisan::all();
+        $schedule = app(Schedule::class);
+        require base_path('routes/console.php');
+
+        $commands  = collect($schedule->events())->map(function ($event) use($lastRun, $background_logs_table, $taskNameColumn, $lastRunColumn, $registeredCommands) {
+            $command = $event->command;
+            if ($command) {
+                preg_match("/artisan(?:'|\\s)+([^']+)/", $command, $matches);
+                $command = $matches[1] ?? $command;
+            }
+
+            $lastRunCommand = '';
+            if($lastRun) {
+                $getRow = DB::table($background_logs_table)->where($taskNameColumn, $command)->first();
+                if($getRow) {
+                    $lastRunCommand = $getRow->$lastRunColumn;
+                }
+            }
+
+            $description = $event->description;
+            if (!$description && isset($registeredCommands[$command])) {
+                $description = $registeredCommands[$command]->getDescription() ?? '—';
+            }
+
+            return [
+            'command' => $command,
+            'frequency' => $this->translateCron($event->expression),
+            'expression' => $event->expression,
+            'last_run' => $lastRunCommand,
+            'description' => $description,
+            ];
+        });
+
+        $commands = $commands->unique('command')->sortBy('command')->values();
+
+        return view('laravel-lens::commands', compact('commands'));
+    }
+
+    protected function translateCron(string $cron): string
+    {
+        return match ($cron) {
+            '* * * * *'              => 'Every minute',
+            '*/5 * * * *'            => 'Every 5 minutes',
+            '*/30 * * * *'           => 'Every 30 minutes',
+            '0 * * * *'              => 'Hourly',
+            '30 * * * *'             => 'Hourly at minute 30',
+            '55 * * * *'             => 'Hourly at minute 55',
+            '0 */2 * * *'            => 'Every 2 hours',
+            '0 */6 * * *'            => 'Every 6 hours',
+            '0 */12 * * *'           => 'Every 12 hours',
+
+            '0 0 * * *'              => 'Daily at midnight',
+            '15 0 * * *'             => 'Daily at 00:15',
+            '10 0 1 * *'             => 'Monthly (1st at 00:10)',
+            '0 1 * * *'              => 'Daily at 01:00',
+            '30 1 * * *'             => 'Daily at 01:30',
+            '0 2 * * *'              => 'Daily at 02:00',
+            '30 7 * * *'             => 'Daily at 07:30',
+            '35 7 * * *'             => 'Daily at 07:35',
+            '0 8 * * *'              => 'Daily at 08:00',
+            '5 8 * * *'              => 'Daily at 08:05',
+            '0 20 * * *'             => 'Daily at 20:00',
+            '0 21 * * *'             => 'Daily at 21:00',
+            '0 0 1 * *'              => 'Monthly (1st at midnight)',
+
+            '0 0 1 12,3,6,9 *'       => 'Quarterly (1st of Mar, Jun, Sep, Dec at midnight)',
+
+            default                  => 'Cron: ' . $cron,
+        };
+    }
+
+    public function runCommand(Request $request)
+    {
+        $request->validate([
+            'command' => 'required|string',
+        ]);
+
+        try {
+            $output = Artisan::call($request->command, []);
+            return response()->json(['output' => $output]);
+        } catch (\Exception $e) {
+            return response()->json(['output' => "Error: " . $e->getMessage()], 500);
         }
     }
 }
