@@ -19,6 +19,7 @@ Route::controller(LaravelLensController::class)->middleware(['web', LaravelLensA
     Route::get('server-side-request-forgery', 'serverSideRequestForgery')->name('server-side-request-forgery');
     Route::get('commands-list', 'commandsList')->name('commands-list');
     Route::post('run-command', 'runCommand')->name('run-command');
+    Route::post('check-command', 'checkCommand')->name('check-command');
 
 });
 

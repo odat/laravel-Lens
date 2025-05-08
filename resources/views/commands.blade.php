@@ -10,6 +10,12 @@
             Background Tasks
         </div>
         <div class="card-body">
+
+            @if (session('status'))
+                <div class="alert alert-success">
+                    {{ session('status') }}
+                </div>
+            @endif
             <div id="output" class="mt-4 alert alert-info d-none"></div>
             <table id="" class="table table-bordered">
                 <thead>
@@ -18,6 +24,7 @@
                     <th>Description</th>
                     <th>Frequency</th>
                     <th>Last run</th>
+                    <th>Last run finished</th>
                     <th>Action</th>
                 </tr>
                 </thead>
@@ -28,6 +35,7 @@
                         <td>{{ $command['description'] }}</td>
                         <td>{{ $command['frequency'] }}</td>
                         <td>{{ $command['last_run'] }}</td>
+                        <td>{!! $command['last_run_finished'] !!}</td>
                         <td>
                             <button class="btn btn-primary run-command" data-command="{{ $command['command'] }}">
                                 Run
@@ -75,12 +83,9 @@ document.querySelectorAll('.run-command').forEach(button => {
         .then(res => res.json())
         .then(data => {
             if(data.output == 0) {
-                location.reload();
-
+                location.reload(true);
             }else{
-                const output = document.getElementById('output');
-                output.classList.remove('d-none');
-                output.innerText = data.output;
+                location.reload(true);
             }
         })
         .catch(err => alert('Error: ' + err))
@@ -89,8 +94,42 @@ document.querySelectorAll('.run-command').forEach(button => {
             this.classList.remove('btn-secondary');
             this.classList.add('btn-primary');
             this.innerHTML = originalHtml;
-        });;
+        });
     });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const elements = document.querySelectorAll('.waiting-job-finished');
+
+    setInterval(() => {
+
+        elements.forEach(el => {
+            const command = el.getAttribute('data-command');
+
+            if (!command) return;
+
+                fetch('{{ config('app.url') }}{{route('laravel-lens.check-command', [], false) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ command: command })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.finished) {
+                        location.reload(); // Hard reload workaround if needed
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+
+        });
+
+    }, 10000);
 });
 </script>
 @endpush

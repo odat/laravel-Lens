@@ -11242,6 +11242,22 @@
             font-size: 0.75rem;
             border-radius: 0.375rem !important;
         }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ccc;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: auto; /* center it */
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body class="sb-nav-fixed">

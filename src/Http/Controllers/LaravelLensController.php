@@ -2,6 +2,7 @@
 
 namespace Odat\LaravelLens\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Console\Command as ConsoleCommand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Process;
@@ -142,6 +143,7 @@ class LaravelLensController extends Controller
     public function commandsList(Request $request)
     {
         $lastRun = false;
+        $lastRunFinished = false;
         $background_logs_table = config('laravel-lens.background_logs_table.table');
         $taskNameColumn = config('laravel-lens.background_logs_table.task_name_column');
         if(Schema::hasTable($background_logs_table)) {
@@ -150,13 +152,18 @@ class LaravelLensController extends Controller
                 $lastRun = true;
             }
 
+            $lastRunFinishedColumn = config('laravel-lens.background_logs_table.last_run_finished_column');
+            if(Schema::hasColumn($background_logs_table, $lastRunFinishedColumn)) {
+                $lastRunFinished = true;
+            }
+
         }
 
         $registeredCommands = Artisan::all();
         $schedule = app(Schedule::class);
         require base_path('routes/console.php');
 
-        $commands  = collect($schedule->events())->map(function ($event) use($lastRun, $background_logs_table, $taskNameColumn, $lastRunColumn, $registeredCommands) {
+        $commands  = collect($schedule->events())->map(function ($event) use($lastRun, $lastRunFinished, $background_logs_table, $taskNameColumn, $lastRunColumn, $lastRunFinishedColumn, $registeredCommands) {
             $command = $event->command;
             if ($command) {
                 preg_match("/artisan(?:'|\\s)+([^']+)/", $command, $matches);
@@ -164,12 +171,25 @@ class LaravelLensController extends Controller
             }
 
             $lastRunCommand = '';
+            $lastRunFinishedCommand = '';
+
             if($lastRun) {
                 $getRow = DB::table($background_logs_table)->where($taskNameColumn, $command)->first();
                 if($getRow) {
                     $lastRunCommand = $getRow->$lastRunColumn;
+
+                    if($lastRunFinished) {
+                            if($getRow->$lastRunFinishedColumn > $lastRunCommand) {
+                                $lastRunFinishedCommand = $getRow->$lastRunFinishedColumn;
+                            }else{
+                                $lastRunFinishedCommand = '<div class="spinner waiting-job-finished" data-command="' . $command . '"></div>';
+                            }
+
+                    }
                 }
             }
+
+
 
             $description = $event->description;
             if (!$description && isset($registeredCommands[$command])) {
@@ -181,6 +201,7 @@ class LaravelLensController extends Controller
             'frequency' => $this->translateCron($event->expression),
             'expression' => $event->expression,
             'last_run' => $lastRunCommand,
+            'last_run_finished' => $lastRunFinishedCommand,
             'description' => $description,
             ];
         });
@@ -232,10 +253,51 @@ class LaravelLensController extends Controller
         ]);
 
         try {
+            $background_logs_table = config('laravel-lens.background_logs_table.table');
+            $taskNameColumn = config('laravel-lens.background_logs_table.task_name_column');
+
+            if(Schema::hasTable($background_logs_table)) {
+                $lastRunColumn = config('laravel-lens.background_logs_table.last_run_column');
+                if(Schema::hasColumn($background_logs_table, $lastRunColumn)) {
+                    DB::table($background_logs_table)->where($taskNameColumn, $request->command)->update([$lastRunColumn => Carbon::now()]);
+                }
+            }
+
             RunArtisanCommand::dispatch($request->command);
+            session()->flash('status', 'Command has been queued successfully.');
             return response()->json(['output' => 'Command has been queued successfully.']);
         } catch (\Exception $e) {
+            session()->flash('status', 'Error: ' . $e->getMessage());
             return response()->json(['output' => "Error: " . $e->getMessage()], 500);
+        }
+    }
+
+    public function checkCommand(Request $request)
+    {
+        set_time_limit(300);
+
+        $request->validate([
+            'command' => 'required|string',
+        ]);
+
+        try {
+            $background_logs_table = config('laravel-lens.background_logs_table.table');
+            $taskNameColumn = config('laravel-lens.background_logs_table.task_name_column');
+            $lastRunColumn = config('laravel-lens.background_logs_table.last_run_column');
+            $lastRunFinishedColumn = config('laravel-lens.background_logs_table.last_run_finished_column');
+
+            if(Schema::hasTable($background_logs_table)) {
+                if(Schema::hasColumn($background_logs_table, $lastRunColumn)) {
+                    $getRow = DB::table($background_logs_table)->where($taskNameColumn, $request->command)->first();
+                    if($getRow) {
+                        $lastRunCommand = Carbon::parse($getRow->$lastRunColumn)->format('Y-m-d H:i:s');
+                        $lastRunFinishedCommand = Carbon::parse($getRow->$lastRunFinishedColumn)->format('Y-m-d H:i:s');
+                        return response()->json(['finished' => (bool) ($lastRunFinishedCommand > $lastRunCommand)]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            return false;
         }
     }
 }
