@@ -209,6 +209,7 @@ class LaravelLensController extends Controller
             ];
         });
 
+
         $commands = $commands->unique('command')->sortBy('command')->values();
 
         return view('laravel-lens::commands', compact('commands'));

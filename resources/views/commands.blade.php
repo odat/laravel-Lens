@@ -54,7 +54,6 @@
         </div>
     </div>
 @endsection
-
 @push('scripts')
 <script>
 document.querySelectorAll('.run-command').forEach(button => {
