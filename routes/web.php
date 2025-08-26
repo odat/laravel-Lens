@@ -2,6 +2,7 @@
 
 use Odat\LaravelLens\Http\Controllers\LaravelLensAuthController;
 use Odat\LaravelLens\Http\Controllers\LaravelLensController;
+use Odat\LaravelLens\Http\Controllers\LaravelLensJobsController;
 use Odat\LaravelLens\Http\Middleware\LaravelLensAuthMiddleware;
 
 Route::controller(LaravelLensController::class)->middleware(['web', LaravelLensAuthMiddleware::class])
@@ -21,6 +22,11 @@ Route::controller(LaravelLensController::class)->middleware(['web', LaravelLensA
     Route::post('run-command', 'runCommand')->name('run-command');
     Route::post('check-command', 'checkCommand')->name('check-command');
 
+
+    Route::controller(LaravelLensJobsController::class)->group(function() {
+        Route::get('/lens/failed-jobs', 'failedJobList')->name('failed-jobs');
+        Route::get('/lens/jobs',        'jobsList')->name('jobs');
+    });
 });
 
 Route::controller(LaravelLensAuthController::class)->middleware(['web'])

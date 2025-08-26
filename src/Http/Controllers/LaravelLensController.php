@@ -294,9 +294,11 @@ class LaravelLensController extends Controller
                 if(Schema::hasColumn($background_logs_table, $lastRunColumn)) {
                     $getRow = DB::table($background_logs_table)->where($taskNameColumn, $request->command)->first();
                     if($getRow) {
-                        $lastRunCommand = Carbon::parse($getRow->$lastRunColumn)->format('Y-m-d H:i:s');
-                        $lastRunFinishedCommand = Carbon::parse($getRow->$lastRunFinishedColumn)->format('Y-m-d H:i:s');
-                        return response()->json(['finished' => (bool) ($lastRunFinishedCommand > $lastRunCommand)]);
+                        $lastRun        = Carbon::parse($getRow->$lastRunColumn);
+                        $lastRunFinished= Carbon::parse($getRow->$lastRunFinishedColumn);
+
+                        $finished = $lastRunFinished->greaterThanOrEqualTo($lastRun);
+                        return response()->json(['finished' => (bool) $finished]);
                     }
                 }
             }
