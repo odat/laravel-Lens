@@ -11305,6 +11305,8 @@
                     <a class="nav-link" href="{{route('laravel-lens.security-logging-and-monitoring-failures')}}">Security Logging and Monitoring Failures</a>
                     <a class="nav-link" href="{{route('laravel-lens.server-side-request-forgery')}}">Server-Side Request Forgery</a>
                     <a class="nav-link" href="{{route('laravel-lens.commands-list')}}">Background Tasks</a>
+                    <a class="nav-link" href="{{route('laravel-lens.jobs')}}">Current Jobs</a>
+                    <a class="nav-link" href="{{route('laravel-lens.failed-jobs')}}">Failed Jobs</a>
 
                 </div>
             </div>
