@@ -3,7 +3,7 @@
 return [
     'enabled' => env('LARAVEL_LENS_ENABLED', false),
     'default' => env('LARAVEL_LENS_DRIVER', 'simple'),
-    'route-prefix' => env('LARAVEL_LENS_ROUTE_PREFIX', 'laravel-lens'),
+    'route-prefix' => env('LARAVEL_LENS_ROUTE_PREFIX', 'api/laravel-lens'),
     'username' => env('LARAVEL_LENS_USERNAME', 'laravel-lens'),
     'password' => env('LARAVEL_LENS_PASSWORD', 'laravel-lens'),
     'session_name' => env('LARAVEL_LENS_SESSION_NAME', 'laravel-lens-session'),
