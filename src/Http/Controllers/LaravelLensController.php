@@ -32,30 +32,32 @@ class LaravelLensController extends Controller
     {
         $routesCollection = Route::getRoutes();
         $routes = [];
-        foreach($routesCollection as $route) {
+        foreach ($routesCollection as $route) {
             $middlewares = [];
-            if(empty($route->middleware())) {
+            if (empty($route->middleware())) {
                 $middlewares[] = 'Public';
-            }else{
-                foreach( $route->middleware() as $middleware) {
-                    if($middleware == 'Spatie\LaravelIgnition\Http\Middleware\RunnableSolutionsEnabled') {
+            } else {
+                foreach ($route->middleware() as $middleware) {
+                    if ($middleware == 'Spatie\LaravelIgnition\Http\Middleware\RunnableSolutionsEnabled') {
                         $middlewares[] = 'Public';
                         continue;
                     }
 
-                    if(strpos($middleware, 'auth:') !== false) {
+                    if (strpos($middleware, 'auth:') !== false) {
                         $middlewares[] = 'Authenticated user';
-                    }elseif($middleware == 'web') {
+                    } elseif ($middleware == 'web') {
                         $middlewares[] = 'Public';
-                    }else{
+                    } else {
                         $middlewares[] = $middleware;
                     }
                 }
             }
-            $routes[] = ['methods' => $route->methods()[0],
+            $routes[] = [
+                'methods' => $route->methods()[0],
                 'uri' => url($route->uri()),
                 'name' => $route->getName(),
-                'middlewares' => $middlewares];
+                'middlewares' => $middlewares
+            ];
         }
         $routes = array_reverse($routes);
         return view('laravel-lens::broken-access-control', ['routes' => $routes]);
@@ -71,12 +73,12 @@ class LaravelLensController extends Controller
         $dir = app_path();
         $this->listFolderFiles($dir);
         $scannedFiles = [];
-        foreach(self::$files as $file) {
-            $fh = fopen($file,'r');
+        foreach (self::$files as $file) {
+            $fh = fopen($file, 'r');
             $i = 1;
             while ($line = fgets($fh)) {
-                if(strpos($line, 'Raw(') !== false || strpos($line, 'raw(') !== false) {
-                    $scannedFiles[] = ['path' => $file, 'line' =>$i, 'code' => $line];
+                if (strpos($line, 'Raw(') !== false || strpos($line, 'raw(') !== false) {
+                    $scannedFiles[] = ['path' => $file, 'line' => $i, 'code' => $line];
                 }
                 $i++;
             }
@@ -122,7 +124,8 @@ class LaravelLensController extends Controller
         return view('laravel-lens::server-side-request-forgery', []);
     }
 
-    public function listFolderFiles($dir){
+    public function listFolderFiles($dir)
+    {
         $ffs = scandir($dir);
 
         unset($ffs[array_search('.', $ffs, true)]);
@@ -131,11 +134,11 @@ class LaravelLensController extends Controller
         // prevent empty ordered elements
         if (count($ffs) < 1)
             return;
-        foreach($ffs as $ff){
-            if(is_dir($dir.'/'.$ff)) {
+        foreach ($ffs as $ff) {
+            if (is_dir($dir . '/' . $ff)) {
                 $this->listFolderFiles($dir . '/' . $ff);
-            }else{
-                self::$files[] = $dir.'/'.$ff;
+            } else {
+                self::$files[] = $dir . '/' . $ff;
             }
         }
     }
@@ -144,26 +147,31 @@ class LaravelLensController extends Controller
     {
         $lastRun = false;
         $lastRunFinished = false;
+        $lastJobSucceeded = false;
         $background_logs_table = config('laravel-lens.background_logs_table.table');
         $taskNameColumn = config('laravel-lens.background_logs_table.task_name_column');
-        if(Schema::hasTable($background_logs_table)) {
+        if (Schema::hasTable($background_logs_table)) {
             $lastRunColumn = config('laravel-lens.background_logs_table.last_run_column');
-            if(Schema::hasColumn($background_logs_table, $lastRunColumn)) {
+            if (Schema::hasColumn($background_logs_table, $lastRunColumn)) {
                 $lastRun = true;
             }
 
             $lastRunFinishedColumn = config('laravel-lens.background_logs_table.last_run_finished_column');
-            if(Schema::hasColumn($background_logs_table, $lastRunFinishedColumn)) {
+            if (Schema::hasColumn($background_logs_table, $lastRunFinishedColumn)) {
                 $lastRunFinished = true;
             }
 
+            $lastJobSucceededColumn = config('laravel-lens.background_logs_table.last_job_succeeded_column');
+            if (Schema::hasColumn($background_logs_table, $lastJobSucceededColumn)) {
+                $lastJobSucceeded = true;
+            }
         }
 
         $registeredCommands = Artisan::all();
         $schedule = app(Schedule::class);
         require base_path('routes/console.php');
 
-        $commands  = collect($schedule->events())->map(function ($event) use($lastRun, $lastRunFinished, $background_logs_table, $taskNameColumn, $lastRunColumn, $lastRunFinishedColumn, $registeredCommands) {
+        $commands  = collect($schedule->events())->map(function ($event) use ($lastRun, $lastRunFinished, $lastJobSucceeded, $background_logs_table, $taskNameColumn, $lastRunColumn, $lastRunFinishedColumn, $registeredCommands, $lastJobSucceededColumn) {
             $command = $event->command;
             if ($command) {
                 preg_match("/artisan(?:'|\\s)+([^']+)/", $command, $matches);
@@ -172,21 +180,26 @@ class LaravelLensController extends Controller
 
             $lastRunCommand = '';
             $lastRunFinishedCommand = '';
+            $isSuccess = null;
             $button = true;
 
-            if($lastRun) {
+            if ($lastRun) {
                 $getRow = DB::table($background_logs_table)->where($taskNameColumn, $command)->first();
-                if($getRow) {
+                if ($getRow) {
                     $lastRunCommand = $getRow->$lastRunColumn;
 
-                    if($lastRunFinished) {
-                            if($getRow->$lastRunFinishedColumn > $lastRunCommand) {
-                                $lastRunFinishedCommand = $getRow->$lastRunFinishedColumn;
-                            }else{
-                                $lastRunFinishedCommand = '<div class="spinner waiting-job-finished" data-command="' . $command . '"></div>';
-                                $button = false;
-                            }
+                    if ($lastJobSucceeded) {
+                        $isSuccess = $getRow->$lastJobSucceededColumn;
+                    }
 
+
+                    if ($lastRunFinished) {
+                        if ($getRow->$lastRunFinishedColumn > $lastRunCommand) {
+                            $lastRunFinishedCommand = $getRow->$lastRunFinishedColumn;
+                        } else {
+                            $lastRunFinishedCommand = '<div class="spinner waiting-job-finished" data-command="' . $command . '"></div>';
+                            $button = false;
+                        }
                     }
                 }
             }
@@ -199,13 +212,14 @@ class LaravelLensController extends Controller
             }
 
             return [
-            'command' => $command,
-            'frequency' => $this->translateCron($event->expression),
-            'expression' => $event->expression,
-            'last_run' => $lastRunCommand,
-            'last_run_finished' => $lastRunFinishedCommand,
-            'description' => $description,
-            'button' => $button
+                'command' => $command,
+                'frequency' => $this->translateCron($event->expression),
+                'expression' => $event->expression,
+                'last_run' => $lastRunCommand,
+                'last_run_finished' => $lastRunFinishedCommand,
+                'last_job_succeeded' => $isSuccess,
+                'description' => $description,
+                'button' => $button
             ];
         });
 
@@ -260,10 +274,16 @@ class LaravelLensController extends Controller
             $background_logs_table = config('laravel-lens.background_logs_table.table');
             $taskNameColumn = config('laravel-lens.background_logs_table.task_name_column');
 
-            if(Schema::hasTable($background_logs_table)) {
+            if (Schema::hasTable($background_logs_table)) {
                 $lastRunColumn = config('laravel-lens.background_logs_table.last_run_column');
-                if(Schema::hasColumn($background_logs_table, $lastRunColumn)) {
-                    DB::table($background_logs_table)->where($taskNameColumn, $request->command)->update([$lastRunColumn => Carbon::now()]);
+                $lastRunFinishedColumn = config('laravel-lens.background_logs_table.last_run_finished_column');
+                $lastJobSucceededColumn = config('laravel-lens.background_logs_table.last_job_succeeded_column');
+                if (Schema::hasColumn($background_logs_table, $lastRunColumn)) {
+                    DB::table($background_logs_table)->where($taskNameColumn, $request->command)->update([
+                        $lastRunColumn => Carbon::now(),
+                        $lastRunFinishedColumn => null,
+                        $lastJobSucceededColumn => null
+                    ]);
                 }
             }
 
@@ -290,12 +310,12 @@ class LaravelLensController extends Controller
             $lastRunColumn = config('laravel-lens.background_logs_table.last_run_column');
             $lastRunFinishedColumn = config('laravel-lens.background_logs_table.last_run_finished_column');
 
-            if(Schema::hasTable($background_logs_table)) {
-                if(Schema::hasColumn($background_logs_table, $lastRunColumn)) {
+            if (Schema::hasTable($background_logs_table)) {
+                if (Schema::hasColumn($background_logs_table, $lastRunColumn)) {
                     $getRow = DB::table($background_logs_table)->where($taskNameColumn, $request->command)->first();
-                    if($getRow) {
+                    if ($getRow) {
                         $lastRun        = Carbon::parse($getRow->$lastRunColumn);
-                        $lastRunFinished= Carbon::parse($getRow->$lastRunFinishedColumn);
+                        $lastRunFinished = Carbon::parse($getRow->$lastRunFinishedColumn);
 
                         $finished = $lastRunFinished->greaterThanOrEqualTo($lastRun);
                         return response()->json(['finished' => (bool) $finished]);

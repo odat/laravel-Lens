@@ -16,6 +16,7 @@ return [
             'table' => 'background_task_infos',
             'last_run_column' => 'last_run',
             'last_run_finished_column' => 'last_run_finished',
-            'task_name_column' => 'task_name'
+            'task_name_column' => 'task_name',
+            'last_job_succeeded_column' => 'last_job_succeeded'
         ]
 ];

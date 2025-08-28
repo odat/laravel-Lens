@@ -25,6 +25,7 @@
                     <th>Frequency</th>
                     <th>Last run</th>
                     <th>Last run finished</th>
+                    <th>succeeded</th>
                     <th>Action</th>
                 </tr>
                 </thead>
@@ -36,6 +37,7 @@
                         <td>{{ $command['frequency'] }}</td>
                         <td>{{ $command['last_run'] }}</td>
                         <td>{!! $command['last_run_finished'] !!}</td>
+                        <td><p class="text-center h5">{!! is_null($command['last_job_succeeded']) ? '<i class="fa-solid fa-circle-question"></i>' : ($command['last_job_succeeded'] == true ? '<i class="fa-solid fa-check text-success"></i>' : '<i class="fa-solid fa-circle-xmark text-danger"></i>') !!}</p></td>
                         <td>
                             <button class="btn run-command @if($command['button']) btn-primary @else btn-secondary disabled @endif" data-command="{{ $command['command'] }}">
                                 @if($command['button']) Run @else <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -80,20 +82,11 @@ document.querySelectorAll('.run-command').forEach(button => {
             },
             body: JSON.stringify({ command })
         })
-        .then(res => res.json())
         .then(data => {
-            if(data.output == 0) {
-                location.reload(true);
-            }else{
-                location.reload(true);
-            }
+            location.reload(true);
         })
         .catch(err => console.log('Error: ' + err))
         .finally(() => {
-            this.disabled = false;
-            this.classList.remove('btn-secondary');
-            this.classList.add('btn-primary');
-            this.innerHTML = originalHtml;
         });
     });
 });
